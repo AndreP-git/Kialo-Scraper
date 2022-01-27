@@ -9,6 +9,7 @@ import time
 
 
 dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes'])
+claim_already_visited = {}
 
 
 def try_click(elem):
@@ -16,25 +17,17 @@ def try_click(elem):
     global actions
     while attempts < 3:
         try:
-            # actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
-            # actions.move_to_element(claim_container.find_element_by_class_name('claim-header__impact-container')).perform()
-            # actions.move_to_element(elem).perform()
             elem.click()
             break
-        except ElementClickInterceptedException as e:
-            # print(e)
+        except ElementClickInterceptedException:
             print('EXCEPTION')
             try:
                 wd.find_element_by_class_name('pop-up-template__close').click()
                 print('popup')
-                break
-            except Exception as e1:
+                # break
+            except Exception:
                 print('EXCEPTION2')
-            actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
-            time.sleep(2)
-            attempts += 1
-        except Exception as e2:
-            print('EX3')
+            # Move mouse to another location to avoid the text shown by hovering mouse on branch claim
             actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
             time.sleep(2)
             attempts += 1
@@ -45,7 +38,12 @@ def get_claim_votes(stance, level, pros_map, cons_map):
         claim = wd.find_element_by_class_name('selected-claim').find_element_by_class_name('claim-text__content').text
     except Exception as e:
         claim = str('Kialo discurssion: ') + wd.find_element_by_class_name('selected-claim').text
+    if claim in claim_already_visited:
+        return
+    else:
+        claim_already_visited[claim] = True
     print(claim)
+
     claim_container = wd.find_element_by_class_name('selected-claim-container')
     time.sleep(0.2)
     WebDriverWait(claim_container, 2000).until(
@@ -53,8 +51,8 @@ def get_claim_votes(stance, level, pros_map, cons_map):
         # EC.visibility_of_element_located((By.CLASS_NAME, 'claim-controls__control-item--menu-button'))
     )
 
-    global actions
     '''
+    global actions
     try:
         # actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
         # actions.move_to_element(claim_container.find_element_by_class_name('claim-header__impact-container')).perform()
@@ -100,32 +98,33 @@ def get_claim_votes(stance, level, pros_map, cons_map):
     sub_pros_map = list(set(new_total_pros_map) - set(pros_map))
     sub_cons_map = list(set(new_total_cons_map) - set(cons_map))
 
-    # sub_pros_map[0].find_element_by_tag_name('rect').click()
-    # get_claim_votes('pro', 0, new_total_pros_map, new_total_cons_map)
-
     for pro in sub_pros_map:
+        '''
         try:
             pro.find_element_by_tag_name('rect').click()
-        except ElementClickInterceptedException as e:
-            # print(e)
+        except ElementClickInterceptedException:
             print('popup')
             wd.find_element_by_class_name('pop-up-template__close').click()
+        '''
+        try_click(pro.find_element_by_tag_name('rect'))
         get_claim_votes('pro', 0, new_total_pros_map, new_total_cons_map)
         
     for con in sub_cons_map:
+        '''
         try:
             con.find_element_by_tag_name('rect').click()
-        except ElementClickInterceptedException as e:
-            # print(e)
+        except ElementClickInterceptedException:
             print('popup')
             wd.find_element_by_class_name('pop-up-template__close').click()
+        '''
+        try_click(con.find_element_by_tag_name('rect'))
         get_claim_votes('con', 0, new_total_pros_map, new_total_cons_map)
 
     # return [level, stance, claim, votes]
 
 
 firefox_options = webdriver.FirefoxOptions()
-# firefox_options.add_argument('--headless')
+firefox_options.add_argument('--headless')
 firefox_options.add_argument('--no-sandbox')
 firefox_options.add_argument('--disable-dev-shm-usage')
 firefox_options.add_argument('--disable-notifications')
@@ -182,45 +181,5 @@ for con_map in cons_map:
 
 dataset.to_excel('output.xlsx')
 print(dataset.iloc[:-1])
-'''
-pro_map[0].find_element_by_tag_name('rect').click()
-pro_map2 = wd.find_elements_by_class_name('mini-map-claim--pro')
-con_map2 = wd.find_elements_by_class_name('mini-map-claim--con')
-print(len(set(pro_map2) - set(pro_map)))
-print(len(con_map))
-claim = wd.find_element_by_class_name('selected-claim').text
-print(claim)
-'''
-'''
-# el = WebDriverWait(wd, 2000).until(EC.invisibility_of_element((By.CLASS_NAME, 'pre-rendered')))
-f = open('page.txt', 'w')
-f.write(wd.page_source)
-f.close()
-'''
-'''
-el = WebDriverWait(wd, 5).until(
-    EC.presence_of_element_located((By.XPATH, '//*[@id="scroll-context-20"]/div[4]/div/div[2]/div/main/div[1]/div/div/div/div[1]/div[2]/div/div/div/div/div[1]/div[1]/div[3]/button[1]'))
-)
-# wd.find_element_by_xpath('//*[@id="scroll-context-20"]/div[4]/div/div[2]/div/main/div[1]/div/div/div/div[1]/div[2]/div/div/div/div/div[1]/div[1]/div[3]/button[1]')
 
-claim_cont = wd.find_element_by_class_name('selected-claim-container')
-claim_controls = wd.find_element_by_class_name('claim-header__controls')
-wd.switch_to.(claim_controls)
-# print(claim_controls.find_elements_by_name('*'))
-butt = claim_controls.find_elements_by_tag_name('button')
-print(butt)
-
-print(wd.find_element_by_class_name('impact-representation__foreground').get_attribute('style'))
-
-# actions.context_click(claim_cont).perform()
-
-# el = wd.find_element_by_class_name('claim-text__content')
-# print(el.text)
-
-hoverable-tooltip-component icon-button claim-controls__control-item claim-controls__control-item--menu-button icon-hover-and-active-trigger
-hoverable-tooltip-component icon-button claim-controls__control-item comments-indicator                        icon-hover-and-active-trigger
-
-hoverable-tooltip-component icon-button claim-controls__control-item claim-controls__control-item--menu-button icon-hover-and-active-trigger
-hoverable-tooltip-component icon-button claim-controls__control-item claim-controls__control-item--menu-button icon-hover-and-active-trigger
-'''
 wd.close()
