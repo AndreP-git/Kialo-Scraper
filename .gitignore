@@ -1,3 +1,5 @@
 chromedriver.exe
 geckodriver.exe
 geckodriver.log
+./files
+./old

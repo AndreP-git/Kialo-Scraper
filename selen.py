@@ -11,8 +11,41 @@ import time
 dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes'])
 
 
+def try_click(elem):
+    attempts = 0
+    global actions
+    while attempts < 3:
+        try:
+            # actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
+            # actions.move_to_element(claim_container.find_element_by_class_name('claim-header__impact-container')).perform()
+            # actions.move_to_element(elem).perform()
+            elem.click()
+            break
+        except ElementClickInterceptedException as e:
+            # print(e)
+            print('EXCEPTION')
+            try:
+                wd.find_element_by_class_name('pop-up-template__close').click()
+                print('popup')
+                break
+            except Exception as e1:
+                print('EXCEPTION2')
+            actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
+            time.sleep(2)
+            attempts += 1
+        except Exception as e2:
+            print('EX3')
+            actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
+            time.sleep(2)
+            attempts += 1
+
+
 def get_claim_votes(stance, level, pros_map, cons_map):
-    claim = wd.find_element_by_class_name('selected-claim').find_element_by_class_name('claim-text__content').text
+    try:
+        claim = wd.find_element_by_class_name('selected-claim').find_element_by_class_name('claim-text__content').text
+    except Exception as e:
+        claim = str('Kialo discurssion: ') + wd.find_element_by_class_name('selected-claim').text
+    print(claim)
     claim_container = wd.find_element_by_class_name('selected-claim-container')
     time.sleep(0.2)
     WebDriverWait(claim_container, 2000).until(
@@ -21,25 +54,36 @@ def get_claim_votes(stance, level, pros_map, cons_map):
     )
 
     global actions
+    '''
     try:
+        # actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
+        # actions.move_to_element(claim_container.find_element_by_class_name('claim-header__impact-container')).perform()
+        # time.sleep(0.1)
         button = claim_container.find_element_by_class_name('claim-controls__control-item--menu-button')
-        actions.move_to_element(button)
+        actions.move_to_element(button).perform()
         button.click()
     except ElementClickInterceptedException as e:
         # print(e)
         print('popup')
         wd.find_element_by_class_name('pop-up-template__close').click()
+    '''
+    button = claim_container.find_element_by_class_name('claim-controls__control-item--menu-button')
+    try_click(button)
 
+    WebDriverWait(wd, 200).until(EC.visibility_of_element_located((By.CLASS_NAME, 'context-menu__item-list')))
     context_menu = wd.find_element_by_class_name('context-menu').find_elements_by_class_name('context-menu-item__text')
 
     for opt in context_menu:
         if opt.text == 'Voting Stats':
+            '''
             try:
                 opt.click()
             except ElementClickInterceptedException as e:
                 # print(e)
                 print('popup')
                 wd.find_element_by_class_name('pop-up-template__close').click()
+            '''
+            try_click(opt)
             break
 
     histogram = wd.find_elements_by_class_name('voters-histogram__voters-bar-container')
