@@ -8,7 +8,7 @@ import pandas as pd
 import time
 
 
-dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes'])
+dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes', 'Comments'])
 claim_already_visited = {}
 
 
@@ -51,24 +51,16 @@ def get_claim_votes(stance, level, pros_map, cons_map):
         # EC.visibility_of_element_located((By.CLASS_NAME, 'claim-controls__control-item--menu-button'))
     )
 
-    '''
-    global actions
-    try:
-        # actions.move_to_element(wd.find_element_by_class_name('icon--kialo-logo')).perform()
-        # actions.move_to_element(claim_container.find_element_by_class_name('claim-header__impact-container')).perform()
-        # time.sleep(0.1)
-        button = claim_container.find_element_by_class_name('claim-controls__control-item--menu-button')
-        actions.move_to_element(button).perform()
-        button.click()
-    except ElementClickInterceptedException as e:
-        # print(e)
-        print('popup')
-        wd.find_element_by_class_name('pop-up-template__close').click()
-    '''
+    comments = claim_container.find_element_by_class_name('comments-indicator').text
+
     button = claim_container.find_element_by_class_name('claim-controls__control-item--menu-button')
     try_click(button)
-
-    WebDriverWait(wd, 200).until(EC.visibility_of_element_located((By.CLASS_NAME, 'context-menu__item-list')))
+    try:
+        WebDriverWait(wd, 200).until(EC.visibility_of_element_located((By.CLASS_NAME, 'context-menu__item-list')))
+    except:
+        claim_container.find_element_by_class_name('claim-header__impact-container').click()
+        time.sleep(1)
+        button.click()
     context_menu = wd.find_element_by_class_name('context-menu').find_elements_by_class_name('context-menu-item__text')
 
     for opt in context_menu:
@@ -90,7 +82,7 @@ def get_claim_votes(stance, level, pros_map, cons_map):
         votes.append(count.find_element_by_class_name('icon__counter').text)
 
     global dataset
-    dataset = dataset.append({'Level': '1.{}'.format(level), 'Stance': stance, 'Claim': claim, 'Votes': votes},
+    dataset = dataset.append({'Level': '1.{}'.format(level), 'Stance': stance, 'Claim': claim, 'Votes': votes, 'Comments': comments},
                              ignore_index=True)
 
     new_total_pros_map = wd.find_elements_by_class_name('mini-map-claim--pro')
@@ -132,7 +124,22 @@ firefox_options.add_argument('--disable-popup-blocking')
 wd = webdriver.Firefox(options=firefox_options)
 actions = ActionChains(wd)
 
-wd.get("https://www.kialo.com/pro-life-vs-pro-choice-should-abortion-be-legal-5637?closeSidebar=notifications.activity")
+# wd.get("https://www.kialo.com/pro-life-vs-pro-choice-should-abortion-be-legal-5637?closeSidebar=notifications.activity")
+# wd.get('https://www.kialo.com/should-conscientious-objection-to-abortion-be-banned-2851')
+# wd.get('https://www.kialo.com/should-there-be-a-universal-basic-income-ubi-1634?closeSidebar=notifications.activity')
+wd.get('https://www.kialo.com/the-existence-of-god-2629')
+
+time.sleep(4)
+WebDriverWait(wd, 200).until(
+    EC.visibility_of_element_located((By.CLASS_NAME, 'pop-up-template__inner-modal-wrapper'))
+)
+wd.find_element_by_class_name('pop-up-template__inner-modal-wrapper').find_element_by_class_name('pop-up-template__close').click()
+
+time.sleep(4)
+WebDriverWait(wd, 200).until(
+    EC.visibility_of_element_located((By.CLASS_NAME, 'pop-up-template__body'))
+)
+wd.find_element_by_class_name('pop-up-template__body').find_element_by_class_name('discussion-info-dialog__close').click()
 
 # Close cookies dialog
 time.sleep(5)
