@@ -8,7 +8,7 @@ import pandas as pd
 import time
 
 
-dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes', 'Comments'])
+dataset = pd.DataFrame(columns=['Level', 'Stance', 'Claim', 'Votes', 'Comments', 'Depth'])
 claim_already_visited = {}
 
 
@@ -33,7 +33,7 @@ def try_click(elem):
             attempts += 1
 
 
-def get_claim_votes(stance, level, pros_map, cons_map):
+def get_claim_votes(stance, level, pros_map, cons_map, depth):
     try:
         claim = wd.find_element_by_class_name('selected-claim').find_element_by_class_name('claim-text__content').text
     except Exception as e:
@@ -48,7 +48,6 @@ def get_claim_votes(stance, level, pros_map, cons_map):
     time.sleep(0.2)
     WebDriverWait(claim_container, 2000).until(
         EC.element_to_be_clickable((By.CLASS_NAME, 'claim-controls__control-item--menu-button'))
-        # EC.visibility_of_element_located((By.CLASS_NAME, 'claim-controls__control-item--menu-button'))
     )
 
     comments = claim_container.find_element_by_class_name('comments-indicator').text
@@ -65,14 +64,6 @@ def get_claim_votes(stance, level, pros_map, cons_map):
 
     for opt in context_menu:
         if opt.text == 'Voting Stats':
-            '''
-            try:
-                opt.click()
-            except ElementClickInterceptedException as e:
-                # print(e)
-                print('popup')
-                wd.find_element_by_class_name('pop-up-template__close').click()
-            '''
             try_click(opt)
             break
 
@@ -82,7 +73,7 @@ def get_claim_votes(stance, level, pros_map, cons_map):
         votes.append(count.find_element_by_class_name('icon__counter').text)
 
     global dataset
-    dataset = dataset.append({'Level': '1.{}'.format(level), 'Stance': stance, 'Claim': claim, 'Votes': votes, 'Comments': comments},
+    dataset = dataset.append({'Level': level, 'Stance': stance, 'Claim': claim, 'Votes': votes, 'Comments': comments, 'Depth': depth},
                              ignore_index=True)
 
     new_total_pros_map = wd.find_elements_by_class_name('mini-map-claim--pro')
@@ -90,29 +81,16 @@ def get_claim_votes(stance, level, pros_map, cons_map):
     sub_pros_map = list(set(new_total_pros_map) - set(pros_map))
     sub_cons_map = list(set(new_total_cons_map) - set(cons_map))
 
+    index_level = 1
     for pro in sub_pros_map:
-        '''
-        try:
-            pro.find_element_by_tag_name('rect').click()
-        except ElementClickInterceptedException:
-            print('popup')
-            wd.find_element_by_class_name('pop-up-template__close').click()
-        '''
         try_click(pro.find_element_by_tag_name('rect'))
-        get_claim_votes('pro', 0, new_total_pros_map, new_total_cons_map)
+        get_claim_votes('pro', level + '.' + str(index_level), new_total_pros_map, new_total_cons_map, depth + 1)
+        index_level += 1
         
     for con in sub_cons_map:
-        '''
-        try:
-            con.find_element_by_tag_name('rect').click()
-        except ElementClickInterceptedException:
-            print('popup')
-            wd.find_element_by_class_name('pop-up-template__close').click()
-        '''
         try_click(con.find_element_by_tag_name('rect'))
-        get_claim_votes('con', 0, new_total_pros_map, new_total_cons_map)
-
-    # return [level, stance, claim, votes]
+        get_claim_votes('con', level + '.' + str(index_level), new_total_pros_map, new_total_cons_map, depth + 1)
+        index_level += 1
 
 
 firefox_options = webdriver.FirefoxOptions()
@@ -124,17 +102,23 @@ firefox_options.add_argument('--disable-popup-blocking')
 wd = webdriver.Firefox(options=firefox_options)
 actions = ActionChains(wd)
 
+'''
+SELECTION OF THE DISCUSSION
+'''
 # wd.get("https://www.kialo.com/pro-life-vs-pro-choice-should-abortion-be-legal-5637?closeSidebar=notifications.activity")
 # wd.get('https://www.kialo.com/should-conscientious-objection-to-abortion-be-banned-2851')
 # wd.get('https://www.kialo.com/should-there-be-a-universal-basic-income-ubi-1634?closeSidebar=notifications.activity')
 wd.get('https://www.kialo.com/the-existence-of-god-2629')
+# wd.get('https://www.kialo.com/high-speed-rail-network-europe-55592')
 
+# Close "new to Kialo" dialog
 time.sleep(4)
 WebDriverWait(wd, 200).until(
     EC.visibility_of_element_located((By.CLASS_NAME, 'pop-up-template__inner-modal-wrapper'))
 )
 wd.find_element_by_class_name('pop-up-template__inner-modal-wrapper').find_element_by_class_name('pop-up-template__close').click()
 
+# Close discussion dialog
 time.sleep(4)
 WebDriverWait(wd, 200).until(
     EC.visibility_of_element_located((By.CLASS_NAME, 'pop-up-template__body'))
@@ -149,7 +133,7 @@ WebDriverWait(wd, 2000).until(
 wd.find_element_by_class_name('toast-template__close-icon').click()
 
 
-main_claim = wd.find_element_by_class_name('selected-claim').text
+main_claim = wd.find_element_by_class_name('selected-claim').find_element_by_class_name('claim-text__content').text
 WebDriverWait(wd, 2000).until(
     EC.element_to_be_clickable((By.CLASS_NAME, 'claim-controls__control-item--menu-button'))
 )
@@ -168,7 +152,7 @@ for count in histogram:
 
 print(str(main_claim) + str(votes))
 
-dataset = dataset.append({'Level': '1', 'Stance': 'None', 'Claim': main_claim, 'Votes': votes}, ignore_index=True)
+dataset = dataset.append({'Level': '1', 'Stance': 'None', 'Claim': main_claim, 'Votes': votes, 'Depth': 0}, ignore_index=True)
 
 pros_map = wd.find_elements_by_class_name('mini-map-claim--pro')
 cons_map = wd.find_elements_by_class_name('mini-map-claim--con')
@@ -176,14 +160,12 @@ cons_map = wd.find_elements_by_class_name('mini-map-claim--con')
 index_level = 1
 for pro_map in pros_map:
     pro_map.find_element_by_tag_name('rect').click()
-    get_claim_votes('pro', index_level, pros_map, cons_map)
-    # print(res)
+    get_claim_votes('pro', '1.{}'.format(index_level), pros_map, cons_map, 1)
     index_level += 1
 
 for con_map in cons_map:
     con_map.find_element_by_tag_name('rect').click()
-    get_claim_votes('con', index_level, pros_map, cons_map)
-    # print(res)
+    get_claim_votes('con', '1.{}'.format(index_level), pros_map, cons_map, 1)
     index_level += 1
 
 dataset.to_excel('output.xlsx')
